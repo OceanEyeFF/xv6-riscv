@@ -66,7 +66,13 @@ void find(char *path,char *filename)
         continue;
       }
 	  if(check_has_substring(buf,filename))
-		  printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+		  printf("%s %s %d %d %d\n",fmtname(buf), buf, st.type, st.ino, st.size);
+	  if(st.type == T_DIR)
+	  {
+		  if(p[0]=='.'&&p[1]==0) continue;
+		  if(p[0]=='.'&&p[1]=='.'&&p[2]==0) continue;
+		  find(buf,filename);
+	  }
     }
     break;
   }
