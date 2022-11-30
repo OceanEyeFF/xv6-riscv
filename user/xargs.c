@@ -13,7 +13,7 @@ int main(int argc,const char* argv[])
 	}
 	char ch;
 	char **buf = (char**)malloc(sizeof(char*) * 64);
-	for (int i = 0;i < 64;i++)
+	For(i,0,64)
 	{
 		buf[i] = (char*)malloc(sizeof(char) * 64);
 		memset(buf[i],0,64);
@@ -21,13 +21,15 @@ int main(int argc,const char* argv[])
     //grep指令的格式 grep filename path
     //所以第一个字符串是grep 第二个是filename
     //之后的都是path
-	for (int i = 0;i < argc;i++)
+	For(i,0,argc)
+	{
 		strcpy(buf[i],argv[i + 1]);
+	}
 	int idx = 2,j = 0;
     //从标准输入中获取path，从标准输入获取的path都是以\n结尾的
 	while (read(0,&ch,1) == 1)
 	{
-		if ('\n' != ch)
+		if (ch!='\n')
 			buf[idx][j++] = ch;
 		else
 		{
@@ -36,8 +38,10 @@ int main(int argc,const char* argv[])
 			idx++;
 		}
 	}
-	for (int i = idx;i < 64;i++)
+	For(i,0,64)
+	{
 		buf[i] = 0;
+	}
 	if (fork() == 0)
 	{
 		exec((char*)argv[1],(char**)buf);
@@ -46,4 +50,3 @@ int main(int argc,const char* argv[])
 	wait(0);
 	exit(0);
 }
-
