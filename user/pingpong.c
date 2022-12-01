@@ -25,7 +25,7 @@ int main(int argc,char* argv[])
 
 	int pid = fork();
 
-	if(pid > 0)
+	if(pid > 0) // 父亲能够获取子进程的pid
 	{
 		printf("I'm father\n");
 		write(p[1],"ping",MSGSIZE);

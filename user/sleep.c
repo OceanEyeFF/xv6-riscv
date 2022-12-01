@@ -11,8 +11,7 @@ int main(int argc,char *argv[])
 		{
 			val=atoi(argv[2]);
 			if(val<=0) goto fail;
-			sleep(val*10);
-			printf("%d\n",val);
+			sleep(val);
 			exit(0);
 		}
 		/*
