@@ -89,3 +89,18 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// student code
+// sys_trace
+//
+uint64
+sys_trace(void)
+{
+	int mask;
+	argint(0,&mask);
+	printf("sys_trace: hi, %d execute successfully\n",mask);
+	
+	struct proc *p = myproc();
+	p->trace_mask = mask;
+	return 0;
+}
