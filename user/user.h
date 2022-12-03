@@ -25,6 +25,8 @@ int uptime(void);
 
 // Task2/Lab2
 int trace(int);// trace System Func
+struct sysinfo;
+int sysinfo(struct sysinfo *);
 
 // ulib.c
 int stat(const char*, struct stat*);
