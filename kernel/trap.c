@@ -65,6 +65,15 @@ usertrap(void)
     intr_on();
 
     syscall();
+	
+  }else if(r_scause() == 15)
+  {
+	  uint va = r_stval();
+	  int res = address_translation_wiht_cow_page(va, p->pagetable);
+	  if( res < 0 )
+	  {
+		  setkilled(p);
+	  }
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {

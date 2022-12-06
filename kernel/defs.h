@@ -64,6 +64,12 @@ void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
 uint64          freemem(void);
+void acquire_rc_lock();
+void release_rc_lock();
+void set_ref_cnt(uint64 pa, int cnt);
+int get_ref_cnt(uint64 pa);
+int inc_ref_cnt(uint64 pa);
+int dec_ref_cnt(uint64 pa);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -177,6 +183,7 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 void            vmprint(pagetable_t,int);
 uint64		access_check(pagetable_t, uint64);
+int address_translation_wiht_cow_page(uint64 va, pagetable_t pagetable);
 
 // plic.c
 void            plicinit(void);

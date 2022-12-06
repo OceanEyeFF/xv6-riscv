@@ -302,33 +302,39 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // physical memory.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
+//
+// stu modify for cow page
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
+  acquire_rc_lock();
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
+	if (*pte & PTE_W) // 若该页可写，将cow位置位并将w位清零
+	{
+		*pte |= PTE_COW;
+		*pte &= ~PTE_W;
+	}
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    if(mappages(new, i, PGSIZE, pa , flags) != 0){
       goto err;
     }
+	inc_ref_cnt(pa);
   }
+  release_rc_lock();
   return 0;
 
  err:
   uvmunmap(new, 0, i / PGSIZE, 1);
+  release_rc_lock();
   return -1;
 }
 
@@ -348,16 +354,24 @@ uvmclear(pagetable_t pagetable, uint64 va)
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
+// stu modify for cow page
 int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
+  int res;
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+
+	res = address_translation_wiht_cow_page(va0,pagetable);
+	if(res<0)
+		return -1;
+
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
+
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -466,7 +480,6 @@ void vmprint(pagetable_t pagetable, int level)
 }
 
 
-
 uint64 access_check(pagetable_t pagetable, uint64 va)
 {
 	if (va >= MAXVA)
@@ -493,4 +506,75 @@ uint64 access_check(pagetable_t pagetable, uint64 va)
 	return mask;
 }
 
+int address_translation_wiht_cow_page(uint64 va, pagetable_t pagetable) // 存在cow页时的虚拟地址转换
+{
+    pte_t *pte;
+    uint64 pa;
+    uint flags;
+    void *mem;
 
+    if (va >= MAXVA) // 非法访问高位地址
+    {
+        return -1;
+    }
+    va = PGROUNDDOWN(va); // 将页偏移地址设为0
+    if ((pte = walk(pagetable, va, 0)) == 0)
+    {
+        // panic("uvmcopy: pte should exist");
+        printf("address_translation_wiht_cow_page: pte should exist\n");
+        return -1;
+    }
+
+    if ((*pte & PTE_V) == 0)
+    {
+        //   panic("uvmcopy: page not present");
+        printf("address_translation_wiht_cow_page: page not present\n");
+        return -1;
+    }
+
+    if (*pte & PTE_W) // 不是cow页
+    {
+        return 0;
+    }
+
+    if (!(*pte & PTE_COW))
+    {
+        printf("cow bit isn't set\n");
+        return -1;
+    }
+    pa = PTE2PA(*pte);
+    if (pa > PHYSTOP)
+    {
+        printf("phy addr error\n");
+        return -1;
+    }
+
+    acquire_rc_lock();             // 请求引用计数锁
+    int ref_cnt = get_ref_cnt(pa); // 获取当前物理页引用计数
+    if (ref_cnt == 1)              // 只有一个进程引用，直接修改权限
+    {
+        *pte |= PTE_W;
+        *pte &= ~PTE_COW;
+    }
+    else
+    {
+        mem = kalloc(); // 申请新的物理页
+        if (mem == 0)
+        {
+            printf("alloc memory failed\n");
+            release_rc_lock();
+            return -1;
+        }
+        memmove(mem, (void *)pa, PGSIZE); // 复制旧物理页内容
+        // flags = (*pte | PTE_W) & ~PTE_COW;
+        flags = (PTE_FLAGS(*pte) | PTE_W) & ~PTE_COW;                 // 获取旧物理页标志位信息并置换cow与w位
+        uvmunmap(pagetable, va, 1, 1);                                // 取消对旧物理页的映射并调用kree函数
+        if (mappages(pagetable, va, PGSIZE, (uint64)mem, flags) != 0) // 将虚拟地址映射到新物理页
+        {
+            release_rc_lock();
+            return -1;
+        }
+    }
+    release_rc_lock();
+    return 0;
+}
