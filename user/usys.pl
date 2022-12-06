@@ -37,5 +37,9 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 
+# Lab2
 entry("trace");
 entry("sysinfo");
+# lab3
+entry("pgaccess");
+entry("connect");

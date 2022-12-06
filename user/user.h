@@ -28,6 +28,11 @@ int trace(int);// trace System Func
 struct sysinfo;
 int sysinfo(struct sysinfo *);
 
+// Task3/Lab3
+int pgaccess(void *base, int len, void *mask);
+// usyscall region
+int ugetpid(void);
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

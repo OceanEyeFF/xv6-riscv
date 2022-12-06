@@ -106,6 +106,6 @@ struct proc {
   char name[16];               // Process name (debugging)
 
 
-//sys_trace variable
-  int trace_mask;
+  int trace_mask;			   //sys_trace variable
+  struct usyscall* ucall; //usyscall variable
 };

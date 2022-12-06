@@ -143,8 +143,10 @@ userret:
         ld t5, 272(a0)
         ld t6, 280(a0)
 
-	# restore user a0
-        ld a0, 112(a0)
+		# restore user a0
+		ld a0, 112(a0)
+		# restore user a0, and save TRAPFRAME in sscratch
+		#csrrw a0, sscratch, a0
         
         # return to user mode and user pc.
         # usertrapret() set up sstatus and sepc.
